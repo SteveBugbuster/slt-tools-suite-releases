@@ -1,0 +1,62 @@
+name: Update latest.json
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-latest-json:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Download release assets
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        mkdir -p release
+        gh release download ${{ github.event.release.tag_name }} --pattern "*.msi.zip" --dir release
+        gh release download ${{ github.event.release.tag_name }} --pattern "*.msi.zip.sig" --dir release
+ 
+    - name: Extract signature
+      run: |
+        WINDOWS_SIG=$(cat release/*.msi.zip.sig)
+        echo "WINDOWS_SIG=$WINDOWS_SIG" >> $GITHUB_ENV
+
+    - name: Generate latest.json
+      run: |
+        VERSION=${{ github.event.release.tag_name }}
+        DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        cat <<EOF > latest.json
+        {
+          "version": "$VERSION",
+          "pub_date": "$DATE",
+          "platforms": {
+            "windows-x86_64": {
+              "signature": "$WINDOWS_SIG",
+              "url": "https://github.com/SteveBugbuster/slt-tools-suite/releases/download/$VERSION/SLT.Tools.Suite_$VERSION_x64_en-US.msi.zip"
+            }
+          }
+        }
+        EOF
+
+    - name: Update Gist
+      env:
+        GIST_ID: 3de3afd096edf97a86e8cad321199c19
+        GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+      run: |
+        JSON_CONTENT=$(jq -Rs . < latest.json)
+        curl -L \
+          -X PATCH \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer $GIST_TOKEN" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          https://api.github.com/gists/$GIST_ID \
+          -d "{\"files\": {\"slt-tools-latest.json\": {\"content\": $JSON_CONTENT}}}"
