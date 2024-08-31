@@ -41,7 +41,7 @@ jobs:
           "platforms": {
             "windows-x86_64": {
               "signature": "$WINDOWS_SIG",
-              "url": "https://github.com/SteveBugbuster/slt-tools-suite/releases/download/$VERSION/SLT.Tools.Suite_$VERSION_x64_-US.msi.zip"
+              "url": "https://github.com/SteveBugbuster/slt-tools-suite/releases/download/$VERSION/SLT.Tools.Suite_$VERSION_x64_en-US.msi.zip"
             }
           }
         }
